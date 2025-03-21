@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Clicker Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        #cat {
+            width: 200px;
+            transition: transform 0.3s;
+        }
+
+        .rotated {
+            transform: rotate(360deg);
+        }
+
+        #cat-video {
+            display: none;
+            width: 200px;
+        }
+
+        .shop {
+            margin-top: 20px;
+            text-align: left;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .shop-item button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Cat Clicker Game</h1>
+        <p>Score: <span id="score">0</span></p>
+        <img id="cat" src="uiia-cat.png" alt="Cat">
+        <video id="cat-video" src="uiia-cat.mp4" loop></video>
+        <audio id="cat-sound" src="cat-sound.mp3"></audio>
+
+        <div class="shop">
+            <h2>Shop</h2>
+            <div class="shop-item" id="item-1">
+                <span>Double Points (Cost: 50)</span>
+                <button onclick="buyItem(1)">Buy</button>
+            </div>
+            <div class="shop-item" id="item-2">
+                <span>Auto Clicker (Cost: 100)</span>
+                <button onclick="buyItem(2)">Buy</button>
+            </div>
+            <div class="shop-item" id="item-3">
+                <span>Triple Points (Cost: 200)</span>
+                <button onclick="buyItem(3)">Buy</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let score = 0;
+        let pointsPerClick = 1;
+        let autoClickers = 0;
+        let doublePoints = false;
+        let triplePoints = false;
+
+        const scoreElement = document.getElementById('score');
+        const catElement = document.getElementById('cat');
+        const catVideoElement = document.getElementById('cat-video');
+        const catSoundElement = document.getElementById('cat-sound');
+
+        catElement.addEventListener('click', () => {
+            addPoints(pointsPerClick);
+            rotateCat();
+            playSound();
+        });
+
+        function addPoints(points) {
+            score += points;
+            scoreElement.textContent = score;
+            updateShop();
+        }
+
+        function rotateCat() {
+            // Hide the image and show the video
+            catElement.style.display = 'none';
+            catVideoElement.style.display = 'block';
+            catVideoElement.play();
+
+            // Rotate the video
+            catVideoElement.classList.add('rotated');
+
+            // Remove the rotation class and switch back to the image after the animation is done
+            setTimeout(() => {
+                catVideoElement.classList.remove('rotated');
+                catVideoElement.pause();
+                catVideoElement.style.display = 'none';
+                catElement.style.display = 'block';
+            }, 300);
+        }
+
+        function playSound() {
+            catSoundElement.play();
+        }
+
+        function buyItem(itemId) {
+            if (itemId === 1 && score >= 50) {
+                score -= 50;
+                pointsPerClick *= 2;
+                document.getElementById('item-1').querySelector('button').disabled = true;
+                document.getElementById('item-1').querySelector('button').classList.add('disabled');
+            } else if (itemId === 2 && score >= 100) {
+                score -= 100;
+                autoClickers++;
+                setInterval(() => {
+                    addPoints(pointsPerClick);
+                }, 1000);
+                document.getElementById('item-2').querySelector('button').disabled = true;
+                document.getElementById('item-2').querySelector('button').classList.add('disabled');
+            } else if (itemId === 3 && score >= 200) {
+                score -= 200;
+                pointsPerClick *= 3;
+                document.getElementById('item-3').querySelector('button').disabled = true;
+                document.getElementById('item-3').querySelector('button').classList.add('disabled');
+            }
+            updateScore();
+        }
+
+        function updateScore() {
+            scoreElement.textContent = score;
+        }
+
+        function updateShop() {
+            const item1Button = document.getElementById('item-1').querySelector('button');
+            const item2Button = document.getElementById('item-2').querySelector('button');
+            const item3Button = document.getElementById('item-3').querySelector('button');
+
+            if (score < 50) {
+                item1Button.disabled = true;
+                item1Button.classList.add('disabled');
+            } else {
+                item1Button.disabled = false;
+                item1Button.classList.remove('disabled');
+            }
+
+            if (score < 100) {
+                item2Button.disabled = true;
+                item2Button.classList.add('disabled');
+            } else {
+                item2Button.disabled = false;
+                item2Button.classList.remove('disabled');
+            }
+
+            if (score < 200) {
+                item3Button.disabled = true;
+                item3Button.classList.add('disabled');
+            } else {
+                item3Button.disabled = false;
+                item3Button.classList.remove('disabled');
+            }
+        }
+    </script>
+</body>
+</html>
