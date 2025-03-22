@@ -8,7 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             height: 100vh;
             margin: 0;
@@ -17,30 +17,24 @@
 
         .game-container {
             text-align: center;
+            margin-top: 20px;
         }
 
         #cat {
             width: 200px;
-            transition: transform 0.3s;
+            transition: transform 0.5s;
+            transform-origin: center center;
         }
 
-        .rotated {
-            transform: rotate(360deg);
-        }
-
-        #cat-video {
-            display: none;
-            width: 200px;
-        }
-
-        .shop {
+        .shop, .achievements, .crates, .events {
             margin-top: 20px;
             text-align: left;
             max-width: 300px;
             margin: 0 auto;
+            display: none;
         }
 
-        .shop-item {
+        .shop-item, .crate-item, .event-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -50,7 +44,7 @@
             border-radius: 5px;
         }
 
-        .shop-item button {
+        .shop-item button, .crate-item button, .event-item button {
             padding: 5px 10px;
             cursor: pointer;
         }
@@ -59,6 +53,12 @@
             cursor: not-allowed;
             opacity: 0.5;
         }
+
+        .cat-emoji {
+            position: absolute;
+            font-size: 2rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -66,41 +66,64 @@
         <h1>Cat Clicker Game</h1>
         <p>Score: <span id="score">0</span></p>
         <img id="cat" src="uiia-cat.png" alt="Cat">
-        <video id="cat-video" src="uiia-cat.mp4" loop></video>
-        <audio id="cat-sound" src="cat-sound.mp3"></audio>
+        <button onclick="toggleShop()">Toggle Shop</button>
+        <button onclick="toggleAchievements()">Toggle Achievements</button>
+        <button onclick="toggleCrates()">Toggle Crates</button>
+    </div>
 
-        <div class="shop">
-            <h2>Shop</h2>
-            <div class="shop-item" id="item-1">
-                <span>Double Points (Cost: 50)</span>
-                <button onclick="buyItem(1)">Buy</button>
-            </div>
-            <div class="shop-item" id="item-2">
-                <span>Auto Clicker (Cost: 100)</span>
-                <button onclick="buyItem(2)">Buy</button>
-            </div>
-            <div class="shop-item" id="item-3">
-                <span>Triple Points (Cost: 200)</span>
-                <button onclick="buyItem(3)">Buy</button>
-            </div>
+    <div class="shop">
+        <h2>Shop</h2>
+        <div id="shop-items"></div>
+    </div>
+
+    <div class="achievements">
+        <h2>Achievements</h2>
+        <ul id="achievements-list"></ul>
+    </div>
+
+    <div class="crates">
+        <h2>Crates</h2>
+        <div class="crate-item" id="crate-1">
+            <span>Basic Crate (Cost: 5000)</span>
+            <button onclick="buyCrate(1)">Buy</button>
+        </div>
+        <div class="crate-item" id="crate-2">
+            <span>Advanced Crate (Cost: 10000)</span>
+            <button onclick="buyCrate(2)">Buy</button>
+        </div>
+        <div class="crate-item" id="crate-3">
+            <span>Premium Crate (Cost: 20000)</span>
+            <button onclick="buyCrate(3)">Buy</button>
         </div>
     </div>
+
+    <div class="events">
+        <h2>Events</h2>
+        <div id="event-log"></div>
+    </div>
+
     <script>
         let score = 0;
         let pointsPerClick = 1;
         let autoClickers = 0;
-        let doublePoints = false;
-        let triplePoints = false;
+        let achievements = [];
+        let skins = [];
 
         const scoreElement = document.getElementById('score');
         const catElement = document.getElementById('cat');
-        const catVideoElement = document.getElementById('cat-video');
-        const catSoundElement = document.getElementById('cat-sound');
+        const shopElement = document.querySelector('.shop');
+        const shopItemsElement = document.getElementById('shop-items');
+        const achievementsElement = document.querySelector('.achievements');
+        const achievementsListElement = document.getElementById('achievements-list');
+        const cratesElement = document.querySelector('.crates');
+        const eventLogElement = document.getElementById('event-log');
+
+        let rotationDegree = 0;
 
         catElement.addEventListener('click', () => {
             addPoints(pointsPerClick);
             rotateCat();
-            playSound();
+            checkAchievements();
         });
 
         function addPoints(points) {
@@ -110,48 +133,72 @@
         }
 
         function rotateCat() {
-            // Hide the image and show the video
-            catElement.style.display = 'none';
-            catVideoElement.style.display = 'block';
-            catVideoElement.play();
-
-            // Rotate the video
-            catVideoElement.classList.add('rotated');
-
-            // Remove the rotation class and switch back to the image after the animation is done
-            setTimeout(() => {
-                catVideoElement.classList.remove('rotated');
-                catVideoElement.pause();
-                catVideoElement.style.display = 'none';
-                catElement.style.display = 'block';
-            }, 300);
+            rotationDegree += 360;
+            catElement.style.transform = `rotate(${rotationDegree}deg)`;
         }
 
-        function playSound() {
-            catSoundElement.play();
+        function toggleShop() {
+            if (shopElement.style.display === 'none' || shopElement.style.display === '') {
+                shopElement.style.display = 'block';
+            } else {
+                shopElement.style.display = 'none';
+            }
+        }
+
+        function toggleAchievements() {
+            if (achievementsElement.style.display === 'none' || achievementsElement.style.display === '') {
+                achievementsElement.style.display = 'block';
+            } else {
+                achievementsElement.style.display = 'none';
+            }
+        }
+
+        function toggleCrates() {
+            if (cratesElement.style.display === 'none' || cratesElement.style.display === '') {
+                cratesElement.style.display = 'block';
+            } else {
+                cratesElement.style.display = 'none';
+            }
         }
 
         function buyItem(itemId) {
-            if (itemId === 1 && score >= 50) {
-                score -= 50;
-                pointsPerClick *= 2;
-                document.getElementById('item-1').querySelector('button').disabled = true;
-                document.getElementById('item-1').querySelector('button').classList.add('disabled');
-            } else if (itemId === 2 && score >= 100) {
-                score -= 100;
-                autoClickers++;
-                setInterval(() => {
-                    addPoints(pointsPerClick);
-                }, 1000);
-                document.getElementById('item-2').querySelector('button').disabled = true;
-                document.getElementById('item-2').querySelector('button').classList.add('disabled');
-            } else if (itemId === 3 && score >= 200) {
-                score -= 200;
-                pointsPerClick *= 3;
-                document.getElementById('item-3').querySelector('button').disabled = true;
-                document.getElementById('item-3').querySelector('button').classList.add('disabled');
+            const items = generateShopItems();
+
+            const item = items.find(i => i.id === itemId);
+            if (score >= item.cost) {
+                score -= item.cost;
+                item.effect();
+                disableButton(itemId);
             }
             updateScore();
+        }
+
+        function buyCrate(crateId) {
+            const crates = [
+                { id: 1, cost: 5000, reward: 'Basic Skin' },
+                { id: 2, cost: 10000, reward: 'Advanced Skin' },
+                { id: 3, cost: 20000, reward: 'Premium Skin' },
+            ];
+
+            const crate = crates.find(c => c.id === crateId);
+            if (score >= crate.cost) {
+                score -= crate.cost;
+                if (Math.random() < 0.01) {
+                    skins.push(crate.reward);
+                    logEvent(`You received a ${crate.reward}!`);
+                } else {
+                    const points = Math.floor(Math.random() * 10000) + 1;
+                    score += points;
+                    logEvent(`You received ${points} points!`);
+                }
+            }
+            updateScore();
+        }
+
+        function disableButton(itemId) {
+            const button = document.getElementById(`item-${itemId}`).querySelector('button');
+            button.disabled = true;
+            button.classList.add('disabled');
         }
 
         function updateScore() {
@@ -159,34 +206,144 @@
         }
 
         function updateShop() {
-            const item1Button = document.getElementById('item-1').querySelector('button');
-            const item2Button = document.getElementById('item-2').querySelector('button');
-            const item3Button = document.getElementById('item-3').querySelector('button');
+            const items = generateShopItems();
 
-            if (score < 50) {
-                item1Button.disabled = true;
-                item1Button.classList.add('disabled');
-            } else {
-                item1Button.disabled = false;
-                item1Button.classList.remove('disabled');
-            }
-
-            if (score < 100) {
-                item2Button.disabled = true;
-                item2Button.classList.add('disabled');
-            } else {
-                item2Button.disabled = false;
-                item2Button.classList.remove('disabled');
-            }
-
-            if (score < 200) {
-                item3Button.disabled = true;
-                item3Button.classList.add('disabled');
-            } else {
-                item3Button.disabled = false;
-                item3Button.classList.remove('disabled');
-            }
+            items.forEach(item => {
+                const button = document.getElementById(`item-${item.id}`).querySelector('button');
+                if (score < item.cost) {
+                    button.disabled = true;
+                    button.classList.add('disabled');
+                } else {
+                    button.disabled = false;
+                    button.classList.remove('disabled');
+                }
+            });
         }
+
+        function generateShopItems() {
+            const items = [];
+            let cost = 50;
+            const effects = [
+                { name: 'Double Points', effect: () => pointsPerClick *= 2 },
+                { name: 'Triple Points', effect: () => pointsPerClick *= 3 },
+                { name: 'Quadruple Points', effect: () => pointsPerClick *= 4 },
+                { name: 'Quintuple Points', effect: () => pointsPerClick *= 5 },
+                { name: 'Hexa Points', effect: () => pointsPerClick *= 6 },
+                { name: 'Hepta Points', effect: () => pointsPerClick *= 7 },
+                { name: 'Octa Points', effect: () => pointsPerClick *= 8 },
+                { name: 'Nona Points', effect: () => pointsPerClick *= 9 },
+                { name: 'Deca Points', effect: () => pointsPerClick *= 10 },
+                { name: 'Undeca Points', effect: () => pointsPerClick *= 11 },
+                { name: 'Dodeca Points', effect: () => pointsPerClick *= 12 },
+                { name: 'Tredeca Points', effect: () => pointsPerClick *= 13 },
+                { name: 'Quattuordeca Points', effect: () => pointsPerClick *= 14 },
+                { name: 'Quindeca Points', effect: () => pointsPerClick *= 15 },
+                { name: 'Sedeca Points', effect: () => pointsPerClick *= 16 },
+                { name: 'Septendeca Points', effect: () => pointsPerClick *= 17 },
+                { name: 'Octodeca Points', effect: () => pointsPerClick *= 18 },
+                { name: 'Novemdeca Points', effect: () => pointsPerClick *= 19 },
+                { name: 'Viginti Points', effect: () => pointsPerClick *= 20 },
+                // Repeat effects for more items
+            ];
+
+            for (let i = 1; i <= 360; i++) {
+                const index = (i - 1) % effects.length;
+                const { name, effect } = effects[index];
+
+                items.push({
+                    id: i,
+                    name: `${name} ${Math.ceil(i / effects.length)}`,
+                    cost,
+                    effect
+                });
+
+                cost *= 3;
+            }
+
+            // Render shop items
+            shopItemsElement.innerHTML = items.map(item => `
+                <div class="shop-item" id="item-${item.id}">
+                    <span>${item.name} (Cost: ${item.cost})</span>
+                    <button onclick="buyItem(${item.id})">Buy</button>
+                </div>
+            `).join('');
+            return items;
+        }
+
+        function checkAchievements() {
+            const achievementList = [
+                { name: 'First Click', condition: () => score >= 1 },
+                { name: 'Hundred Points', condition: () => score >= 100 },
+                { name: 'Thousand Points', condition: () => score >= 1000 },
+                { name: 'Ten Thousand Points', condition: () => score >= 10000 },
+            ];
+
+            achievementList.forEach(ach => {
+                if (ach.condition() && !achievements.includes(ach.name)) {
+                    achievements.push(ach.name);
+                    const li = document.createElement('li');
+                    li.textContent = ach.name;
+                    achievementsListElement.appendChild(li);
+                }
+            });
+        }
+
+        function logEvent(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            eventLogElement.appendChild(p);
+        }
+
+        function resetProgress() {
+            score = 0;
+            pointsPerClick = 1;
+            autoClickers = 0;
+            achievements = [];
+            skins = [];
+            updateScore();
+            shopItemsElement.innerHTML = '';
+            achievementsListElement.innerHTML = '';
+            logEvent('Progress has been reset!');
+        }
+
+        function spawnCatEmoji() {
+            const catEmoji = document.createElement('div');
+            catEmoji.className = 'cat-emoji';
+            catEmoji.textContent = '🐱';
+            catEmoji.style.top = `${Math.random() * 80 + 10}%`;
+            catEmoji.style.left = `${Math.random() * 80 + 10}%`;
+            catEmoji.addEventListener('click', () => {
+                resetProgress();
+                catEmoji.remove();
+            });
+            document.body.appendChild(catEmoji);
+
+            setTimeout(() => {
+                if (document.body.contains(catEmoji)) {
+                    catEmoji.remove();
+                }
+            }, 10000); // Remove after 10 seconds if not clicked
+        }
+
+        // Random events
+        setInterval(() => {
+            const randomEvent = Math.random();
+            if (randomEvent < 0.1) {
+                const points = Math.floor(Math.random() * 100) + 1;
+                score += points;
+                logEvent(`You found ${points} bonus points!`);
+                updateScore();
+            } else if (randomEvent < 0.2) {
+                const points = Math.floor(Math.random() * 50) + 1;
+                score -= points;
+                logEvent(`You lost ${points} points!`);
+                updateScore();
+            } else if (randomEvent < 0.001) { // Super rare chance
+                spawnCatEmoji();
+            }
+        }, Math.floor(Math.random() * 60000) + 60000); // Random interval between 1 and 2 minutes
+
+        generateShopItems(); // Initialize the shop items
     </script>
 </body>
 </html>
