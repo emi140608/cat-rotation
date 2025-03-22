@@ -223,36 +223,54 @@
         function generateShopItems() {
             const items = [];
             let cost = 50;
-            const effects = [
-                { name: 'Double Points', effect: () => pointsPerClick *= 2 },
-                { name: 'Triple Points', effect: () => pointsPerClick *= 3 },
-                { name: 'Quadruple Points', effect: () => pointsPerClick *= 4 },
-                { name: 'Quintuple Points', effect: () => pointsPerClick *= 5 },
-                { name: 'Hexa Points', effect: () => pointsPerClick *= 6 },
-                { name: 'Hepta Points', effect: () => pointsPerClick *= 7 },
-                { name: 'Octa Points', effect: () => pointsPerClick *= 8 },
-                { name: 'Nona Points', effect: () => pointsPerClick *= 9 },
-                { name: 'Deca Points', effect: () => pointsPerClick *= 10 },
-                { name: 'Undeca Points', effect: () => pointsPerClick *= 11 },
-                { name: 'Dodeca Points', effect: () => pointsPerClick *= 12 },
-                { name: 'Tredeca Points', effect: () => pointsPerClick *= 13 },
-                { name: 'Quattuordeca Points', effect: () => pointsPerClick *= 14 },
-                { name: 'Quindeca Points', effect: () => pointsPerClick *= 15 },
-                { name: 'Sedeca Points', effect: () => pointsPerClick *= 16 },
-                { name: 'Septendeca Points', effect: () => pointsPerClick *= 17 },
-                { name: 'Octodeca Points', effect: () => pointsPerClick *= 18 },
-                { name: 'Novemdeca Points', effect: () => pointsPerClick *= 19 },
-                { name: 'Viginti Points', effect: () => pointsPerClick *= 20 },
-                // Repeat effects for more items
+            const itemNames = [
+                'Double Points', 'Triple Points', 'Quadruple Points', 'Auto Clicker', 'Quintuple Points',
+                'Hexa Points', 'Hepta Points', 'Octa Points', 'Nona Points', 'Deca Points',
+                'Undeca Points', 'Dodeca Points', 'Tredeca Points', 'Quattuordeca Points', 'Quindeca Points',
+                'Sedeca Points', 'Septendeca Points', 'Octodeca Points', 'Novemdeca Points', 'Viginti Points',
+                'Catnip Boost', 'Laser Pointer', 'Feather Toy', 'Cat Tree', 'Scratching Post',
+                'Comfy Bed', 'Cat Castle', 'Interactive Toy', 'Self-Cleaning Litter Box', 'Gourmet Food',
+                'Catnip Garden', 'Luxury Collar', 'Automatic Feeder', 'Cat Hammock', 'Cat Wheel',
+                'Cat TV', 'Cat Backpack', 'Cat Fountain', 'Cat Condo', 'Cat Tunnel',
+                'Cat Spa', 'Cat Grooming Kit', 'Cat Massage Chair', 'Cat Playhouse', 'Cat Treat Dispenser',
+                'Cat Puzzle Feeder', 'Cat Laser Show', 'Cat Jungle Gym', 'Cat Climbing Wall', 'Cat Scratcher Lounge',
+                'Cat Exercise Wheel', 'Cat Window Perch', 'Cat Heating Pad', 'Cat Tent', 'Cat Ball Pit',
+                'Cat Activity Center', 'Catnip Spray', 'Cat Dancer Toy', 'Cat Feather Wand', 'Cat Mouse Toy',
+                'Cat Scratching Mat', 'Catnip Bubbles', 'Catnip Fish Toy', 'Catnip Pillow', 'Catnip Banana',
+                'Catnip Carrot', 'Catnip Mouse', 'Catnip Ball', 'Catnip Stick', 'Catnip Heart',
+                'Cat Silhouette Lamp', 'Cat Night Light', 'Cat Bed Warmer', 'Cat Sofa', 'Cat House',
+                'Cat Window Bed', 'Cat Hammock Bed', 'Cat Wall Climber', 'Cat Stairs', 'Cat Tower',
+                'Cat Scratcher Post', 'Cat Tree House', 'Cat Window Perch Deluxe', 'Cat Play Tunnel', 'Cat Bed Cave',
+                'Cat Tunnel Maze', 'Cat Activity Mat', 'Cat Scratching Barrel', 'Cat Tent House', 'Cat Travel Carrier',
+                'Cat Carrier Backpack', 'Cat Bed Dome', 'Cat Bed Igloo', 'Cat Teepee', 'Cat Play Cube',
+                'Cat Playhouse Deluxe', 'Cat Puzzle Toy', 'Cat Exercise Toy', 'Cat Treat Ball', 'Cat Feather Teaser',
+                'Cat Scratcher Pad', 'Catnip Toy Set', 'Catnip Toy Collection', 'Catnip Variety Pack', 'Catnip Toy Bundle',
+                'Catnip Chew Toy', 'Catnip Kitty Krack', 'Catnip Infused Toy', 'Catnip Cat Toy', 'Catnip Toy Mouse',
+                'Catnip Toy Fish', 'Catnip Toy Bird', 'Catnip Toy Snake', 'Catnip Toy Bunny', 'Catnip Toy Carrot',
+                'Catnip Toy Banana', 'Catnip Toy Apple', 'Catnip Toy Pear', 'Catnip Toy Orange', 'Catnip Toy Lemon',
+                'Catnip Toy Strawberry', 'Catnip Toy Blueberry', 'Catnip Toy Grape', 'Catnip Toy Cherry', 'Catnip Toy Pineapple',
+                'Catnip Toy Watermelon', 'Catnip Toy Coconut', 'Catnip Toy Kiwi', 'Catnip Toy Mango', 'Catnip Toy Papaya',
+                'Catnip Toy Guava', 'Catnip Toy Avocado', 'Catnip Toy Dragonfruit', 'Catnip Toy Starfruit', 'Catnip Toy Tomato',
+                'Catnip Toy Pumpkin', 'Catnip Toy Squash', 'Catnip Toy Zucchini', 'Catnip Toy Cucumber', 'Catnip Toy Radish',
+                'Catnip Toy Beet', 'Catnip Toy Carrot', 'Catnip Toy Turnip', 'Catnip Toy Potato', 'Catnip Toy Sweet Potato',
+                'Catnip Toy Yam', 'Catnip Toy Corn', 'Catnip Toy Peas', 'Catnip Toy Beans', 'Catnip Toy Lentils',
+                'Catnip Toy Chickpeas', 'Catnip Toy Quinoa', 'Catnip Toy Rice', 'Catnip Toy Oats', 'Catnip Toy Barley',
+                'Catnip Toy Wheat', 'Catnip Toy Rye', 'Catnip Toy Millet', 'Catnip Toy Sorghum', 'Catnip Toy Amaranth',
+                'Catnip Toy Teff', 'Catnip Toy Buckwheat', 'Catnip Toy Spelt', 'Catnip Toy Farro', 'Catnip Toy Einkorn',
+                'Catnip Toy Kamut', 'Catnip Toy Emmer', 'Catnip Toy Freekeh', 'Catnip Toy Bulgur', 'Catnip Toy Couscous',
+                'Catnip Toy Semolina', 'Catnip Toy Polenta', 'Catnip Toy Grits', 'Catnip Toy Masa', 'Catnip Toy Cornmeal',
+                'Catnip Toy Cornstarch', 'Catnip Toy Arrowroot', 'Catnip Toy Tapioca', 'Catnip Toy Potatoes', 'Catnip Toy Sweet Potatoes',
+                'Catnip Toy Yams', 'Catnip Toy Cassava', 'Catnip Toy Plantains', 'Catnip Toy Bananas', 'Catnip Toy Mangoes',
+                'Catnip Toy Pineapples', 'Catnip Toy Watermelons', 'Catnip Toy Kiwis', 'Catnip Toy Dragonfruit', 'Catnip Toy Starfruit'
             ];
 
             for (let i = 1; i <= 360; i++) {
-                const index = (i - 1) % effects.length;
-                const { name, effect } = effects[index];
+                const name = itemNames[i % itemNames.length];
+                const effect = i % 4 === 0 && i === 4 ? () => { autoClickers++; setInterval(() => addPoints(pointsPerClick), 2000); } : () => pointsPerClick *= (i % 3) + 2;
 
                 items.push({
                     id: i,
-                    name: `${name} ${Math.ceil(i / effects.length)}`,
+                    name: `${name} ${Math.ceil(i / itemNames.length)}`,
                     cost,
                     effect
                 });
