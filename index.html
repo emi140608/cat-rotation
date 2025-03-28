@@ -18,15 +18,39 @@
         .game-container {
             text-align: center;
             margin-top: 20px;
+            position: relative;
+        }
+
+        .promo-code-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
         }
 
         #cat {
             width: 200px;
-            transition: transform 0.5s;
             transform-origin: center center;
         }
 
-        .shop, .achievements, .crates, .events {
+        .rotate {
+            animation: rotate 0.5s linear;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .cursor {
+            width: 50px;
+            position: absolute;
+        }
+
+        .shop, .achievements, .events {
             margin-top: 20px;
             text-align: left;
             max-width: 300px;
@@ -34,7 +58,7 @@
             display: none;
         }
 
-        .shop-item, .crate-item, .event-item {
+        .shop-item, .event-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -44,7 +68,7 @@
             border-radius: 5px;
         }
 
-        .shop-item button, .crate-item button, .event-item button {
+        .shop-item button, .event-item button {
             padding: 5px 10px;
             cursor: pointer;
         }
@@ -64,11 +88,14 @@
 <body>
     <div class="game-container">
         <h1>Cat Clicker Game</h1>
-        <p>Score: <span id="score">0</span></p>
+        <p>Cat Points: <span id="score">0</span></p>
         <img id="cat" src="uiia-cat.png" alt="Cat">
-        <button onclick="toggleShop()">Toggle Shop</button>
-        <button onclick="toggleAchievements()">Toggle Achievements</button>
-        <button onclick="toggleCrates()">Toggle Crates</button>
+        <button onclick="toggleShop()">Shop</button>
+        <button onclick="toggleAchievements()">Achievements</button>
+        <div class="promo-code-container">
+            <input type="text" id="promo-input" placeholder="Enter promo code">
+            <button onclick="applyPromo()">Apply Promo</button>
+        </div>
     </div>
 
     <div class="shop">
@@ -81,33 +108,32 @@
         <ul id="achievements-list"></ul>
     </div>
 
-    <div class="crates">
-        <h2>Crates</h2>
-        <div class="crate-item" id="crate-1">
-            <span>Basic Crate (Cost: 5000)</span>
-            <button onclick="buyCrate(1)">Buy</button>
-        </div>
-        <div class="crate-item" id="crate-2">
-            <span>Advanced Crate (Cost: 10000)</span>
-            <button onclick="buyCrate(2)">Buy</button>
-        </div>
-        <div class="crate-item" id="crate-3">
-            <span>Premium Crate (Cost: 20000)</span>
-            <button onclick="buyCrate(3)">Buy</button>
-        </div>
-    </div>
-
     <div class="events">
         <h2>Events</h2>
         <div id="event-log"></div>
     </div>
 
     <script>
+        // Check if the user is logged in
+        const user = localStorage.getItem('user');
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
         let score = 0;
         let pointsPerClick = 1;
-        let autoClickers = 0;
+        let cursors = 0;
+        let cursorCost = 100;
+        let cursorMax = 100;
         let achievements = [];
         let skins = [];
+        let pointsPerSecond = 0;
+        let usedPromoCodes = new Set();
+        let itemsPurchased = {};
+        let cps = 0;
+        let clicks = 0;
+        let lastClickTime = 0;
+        let doubleClickPoints = false;
 
         const scoreElement = document.getElementById('score');
         const catElement = document.getElementById('cat');
@@ -115,12 +141,19 @@
         const shopItemsElement = document.getElementById('shop-items');
         const achievementsElement = document.querySelector('.achievements');
         const achievementsListElement = document.getElementById('achievements-list');
-        const cratesElement = document.querySelector('.crates');
         const eventLogElement = document.getElementById('event-log');
 
         let rotationDegree = 0;
 
         catElement.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastClickTime < 1000) {
+                clicks++;
+            } else {
+                clicks = 1;
+            }
+            lastClickTime = now;
+            cps = clicks;
             addPoints(pointsPerClick);
             rotateCat();
             checkAchievements();
@@ -130,11 +163,14 @@
             score += points;
             scoreElement.textContent = score;
             updateShop();
+            saveProgress();
         }
 
         function rotateCat() {
-            rotationDegree += 360;
-            catElement.style.transform = `rotate(${rotationDegree}deg)`;
+            catElement.classList.add('rotate');
+            setTimeout(() => {
+                catElement.classList.remove('rotate');
+            }, 500); // Matches the animation duration
         }
 
         function toggleShop() {
@@ -153,14 +189,6 @@
             }
         }
 
-        function toggleCrates() {
-            if (cratesElement.style.display === 'none' || cratesElement.style.display === '') {
-                cratesElement.style.display = 'block';
-            } else {
-                cratesElement.style.display = 'none';
-            }
-        }
-
         function buyItem(itemId) {
             const items = generateShopItems();
 
@@ -168,37 +196,39 @@
             if (score >= item.cost) {
                 score -= item.cost;
                 item.effect();
-                disableButton(itemId);
+                item.cost *= 1.2; // Increase cost by 0.2 times
+                itemsPurchased[item.name] = (itemsPurchased[item.name] || 0) + 1;
             }
             updateScore();
+            saveProgress();
         }
 
-        function buyCrate(crateId) {
-            const crates = [
-                { id: 1, cost: 5000, reward: 'Basic Skin' },
-                { id: 2, cost: 10000, reward: 'Advanced Skin' },
-                { id: 3, cost: 20000, reward: 'Premium Skin' },
-            ];
-
-            const crate = crates.find(c => c.id === crateId);
-            if (score >= crate.cost) {
-                score -= crate.cost;
-                if (Math.random() < 0.01) {
-                    skins.push(crate.reward);
-                    logEvent(`You received a ${crate.reward}!`);
-                } else {
-                    const points = Math.floor(Math.random() * 10000) + 1;
-                    score += points;
-                    logEvent(`You received ${points} points!`);
-                }
+        function buyCursor() {
+            if (cursors < cursorMax && score >= cursorCost) {
+                score -= cursorCost;
+                cursors++;
+                cursorCost *= 1.2; // Increase cost by 0.2 times
+                spawnCursor();
+                updateShop();
+                updateScore();
+                saveProgress();
             }
-            updateScore();
         }
 
-        function disableButton(itemId) {
-            const button = document.getElementById(`item-${itemId}`).querySelector('button');
-            button.disabled = true;
-            button.classList.add('disabled');
+        function spawnCursor() {
+            const cursorElement = document.createElement('img');
+            cursorElement.src = 'cursor.png'; // Add the path to your cursor image
+            cursorElement.className = 'cursor';
+            cursorElement.style.left = `${50 + cursors * 60}px`; // Adjust position
+            cursorElement.style.top = `50px`; // Adjust position
+            document.querySelector('.game-container').appendChild(cursorElement);
+            pointsPerSecond += 0.5;
+        }
+
+        function updatePointsPerSecond() {
+            setInterval(() => {
+                addPoints(pointsPerSecond);
+            }, 1000); 
         }
 
         function updateScore() {
@@ -218,70 +248,61 @@
                     button.classList.remove('disabled');
                 }
             });
+
+            const cursorButton = document.getElementById('cursor-button');
+            if (score < cursorCost || cursors >= cursorMax) {
+                cursorButton.disabled = true;
+                cursorButton.classList.add('disabled');
+            } else {
+                cursorButton.disabled = false;
+                cursorButton.classList.remove('disabled');
+            }
+
+            document.getElementById('cursor-cost').textContent = cursorCost;
         }
 
         function generateShopItems() {
             const items = [];
-            let cost = 50;
+            let cost = 100;
             const itemNames = [
-                'Double Points', 'Triple Points', 'Quadruple Points', 'Auto Clicker', 'Quintuple Points',
-                'Hexa Points', 'Hepta Points', 'Octa Points', 'Nona Points', 'Deca Points',
-                'Undeca Points', 'Dodeca Points', 'Tredeca Points', 'Quattuordeca Points', 'Quindeca Points',
-                'Sedeca Points', 'Septendeca Points', 'Octodeca Points', 'Novemdeca Points', 'Viginti Points',
-                'Catnip Boost', 'Laser Pointer', 'Feather Toy', 'Cat Tree', 'Scratching Post',
-                'Comfy Bed', 'Cat Castle', 'Interactive Toy', 'Self-Cleaning Litter Box', 'Gourmet Food',
-                'Catnip Garden', 'Luxury Collar', 'Automatic Feeder', 'Cat Hammock', 'Cat Wheel',
-                'Cat TV', 'Cat Backpack', 'Cat Fountain', 'Cat Condo', 'Cat Tunnel',
-                'Cat Spa', 'Cat Grooming Kit', 'Cat Massage Chair', 'Cat Playhouse', 'Cat Treat Dispenser',
-                'Cat Puzzle Feeder', 'Cat Laser Show', 'Cat Jungle Gym', 'Cat Climbing Wall', 'Cat Scratcher Lounge',
-                'Cat Exercise Wheel', 'Cat Window Perch', 'Cat Heating Pad', 'Cat Tent', 'Cat Ball Pit',
-                'Cat Activity Center', 'Catnip Spray', 'Cat Dancer Toy', 'Cat Feather Wand', 'Cat Mouse Toy',
-                'Cat Scratching Mat', 'Catnip Bubbles', 'Catnip Fish Toy', 'Catnip Pillow', 'Catnip Banana',
-                'Catnip Carrot', 'Catnip Mouse', 'Catnip Ball', 'Catnip Stick', 'Catnip Heart',
-                'Cat Silhouette Lamp', 'Cat Night Light', 'Cat Bed Warmer', 'Cat Sofa', 'Cat House',
-                'Cat Window Bed', 'Cat Hammock Bed', 'Cat Wall Climber', 'Cat Stairs', 'Cat Tower',
-                'Cat Scratcher Post', 'Cat Tree House', 'Cat Window Perch Deluxe', 'Cat Play Tunnel', 'Cat Bed Cave',
-                'Cat Tunnel Maze', 'Cat Activity Mat', 'Cat Scratching Barrel', 'Cat Tent House', 'Cat Travel Carrier',
-                'Cat Carrier Backpack', 'Cat Bed Dome', 'Cat Bed Igloo', 'Cat Teepee', 'Cat Play Cube',
-                'Cat Playhouse Deluxe', 'Cat Puzzle Toy', 'Cat Exercise Toy', 'Cat Treat Ball', 'Cat Feather Teaser',
-                'Cat Scratcher Pad', 'Catnip Toy Set', 'Catnip Toy Collection', 'Catnip Variety Pack', 'Catnip Toy Bundle',
-                'Catnip Chew Toy', 'Catnip Kitty Krack', 'Catnip Infused Toy', 'Catnip Cat Toy', 'Catnip Toy Mouse',
-                'Catnip Toy Fish', 'Catnip Toy Bird', 'Catnip Toy Snake', 'Catnip Toy Bunny', 'Catnip Toy Carrot',
-                'Catnip Toy Banana', 'Catnip Toy Apple', 'Catnip Toy Pear', 'Catnip Toy Orange', 'Catnip Toy Lemon',
-                'Catnip Toy Strawberry', 'Catnip Toy Blueberry', 'Catnip Toy Grape', 'Catnip Toy Cherry', 'Catnip Toy Pineapple',
-                'Catnip Toy Watermelon', 'Catnip Toy Coconut', 'Catnip Toy Kiwi', 'Catnip Toy Mango', 'Catnip Toy Papaya',
-                'Catnip Toy Guava', 'Catnip Toy Avocado', 'Catnip Toy Dragonfruit', 'Catnip Toy Starfruit', 'Catnip Toy Tomato',
-                'Catnip Toy Pumpkin', 'Catnip Toy Squash', 'Catnip Toy Zucchini', 'Catnip Toy Cucumber', 'Catnip Toy Radish',
-                'Catnip Toy Beet', 'Catnip Toy Carrot', 'Catnip Toy Turnip', 'Catnip Toy Potato', 'Catnip Toy Sweet Potato',
-                'Catnip Toy Yam', 'Catnip Toy Corn', 'Catnip Toy Peas', 'Catnip Toy Beans', 'Catnip Toy Lentils',
-                'Catnip Toy Chickpeas', 'Catnip Toy Quinoa', 'Catnip Toy Rice', 'Catnip Toy Oats', 'Catnip Toy Barley',
-                'Catnip Toy Wheat', 'Catnip Toy Rye', 'Catnip Toy Millet', 'Catnip Toy Sorghum', 'Catnip Toy Amaranth',
-                'Catnip Toy Teff', 'Catnip Toy Buckwheat', 'Catnip Toy Spelt', 'Catnip Toy Farro', 'Catnip Toy Einkorn',
-                'Catnip Toy Kamut', 'Catnip Toy Emmer', 'Catnip Toy Freekeh', 'Catnip Toy Bulgur', 'Catnip Toy Couscous',
-                'Catnip Toy Semolina', 'Catnip Toy Polenta', 'Catnip Toy Grits', 'Catnip Toy Masa', 'Catnip Toy Cornmeal',
-                'Catnip Toy Cornstarch', 'Catnip Toy Arrowroot', 'Catnip Toy Tapioca', 'Catnip Toy Potatoes', 'Catnip Toy Sweet Potatoes',
-                'Catnip Toy Yams', 'Catnip Toy Cassava', 'Catnip Toy Plantains', 'Catnip Toy Bananas', 'Catnip Toy Mangoes',
-                'Catnip Toy Pineapples', 'Catnip Toy Watermelons', 'Catnip Toy Kiwis', 'Catnip Toy Dragonfruit', 'Catnip Toy Starfruit'
+                'Cursor', 'Catnip', 'Laser Pointer', 'Feather Toy', 'Scratching Post',
+                'Cat Tree', 'Comfy Bed', 'Cat Castle', 'Interactive Toy', 'Self-Cleaning Litter Box', 'Double Click Points'
             ];
 
-            for (let i = 1; i <= 360; i++) {
-                const name = itemNames[i % itemNames.length];
-                const effect = i % 4 === 0 && i === 4 ? () => { autoClickers++; setInterval(() => addPoints(pointsPerClick), 2000); } : () => pointsPerClick *= (i % 3) + 2;
+            const effects = [
+                () => pointsPerSecond += 0.5,  // Cursor
+                () => pointsPerSecond += 2,    // Catnip
+                () => pointsPerSecond += 8,    // Laser Pointer
+                () => pointsPerSecond += 32,   // Feather Toy
+                () => pointsPerSecond += 128,  // Scratching Post
+                () => pointsPerSecond += 512,  // Cat Tree
+                () => pointsPerSecond += 2048, // Comfy Bed
+                () => pointsPerSecond += 8192, // Cat Castle
+                () => pointsPerSecond += 32768,// Interactive Toy
+                () => pointsPerSecond += 131072, // Self-Cleaning Litter Box
+                () => {
+                    if (!doubleClickPoints) {
+                        pointsPerClick += 2;
+                        doubleClickPoints = true;
+                    }
+                } // Double Click Points (not stackable)
+            ];
 
+            itemNames.forEach((name, i) => {
                 items.push({
-                    id: i,
-                    name: `${name} ${Math.ceil(i / itemNames.length)}`,
+                    id: i + 1,
+                    name,
                     cost,
-                    effect
+                    effect: effects[i]
                 });
 
-                cost *= 3;
-            }
+                cost *= 4; // Increase cost by 4 times for each item
+            });
 
             // Render shop items
             shopItemsElement.innerHTML = items.map(item => `
                 <div class="shop-item" id="item-${item.id}">
-                    <span>${item.name} (Cost: ${item.cost})</span>
+                    <span>${item.name} (Cost: ${item.cost.toFixed(1)}) - Purchased: ${itemsPurchased[item.name] || 0}</span>
                     <button onclick="buyItem(${item.id})">Buy</button>
                 </div>
             `).join('');
@@ -291,9 +312,12 @@
         function checkAchievements() {
             const achievementList = [
                 { name: 'First Click', condition: () => score >= 1 },
-                { name: 'Hundred Points', condition: () => score >= 100 },
-                { name: 'Thousand Points', condition: () => score >= 1000 },
-                { name: 'Ten Thousand Points', condition: () => score >= 10000 },
+                { name: 'Hundred Cat Points', condition: () => score >= 100 },
+                { name: 'Thousand Cat Points', condition: () => score >= 1000 },
+                { name: 'Ten Thousand Cat Points', condition: () => score >= 10000 },
+                { name: 'Clicks Per Second - 1', condition: () => cps >= 1 },
+                { name: 'Clicks Per Second - 5', condition: () => cps >= 5 },
+                { name: 'Clicks Per Second - 10', condition: () => cps >= 10 },
             ];
 
             achievementList.forEach(ach => {
@@ -315,13 +339,19 @@
         function resetProgress() {
             score = 0;
             pointsPerClick = 1;
-            autoClickers = 0;
+            cursors = 0;
+            cursorCost = 100;
+            pointsPerSecond = 0;
             achievements = [];
             skins = [];
+            usedPromoCodes.clear();
+            itemsPurchased = {};
+            doubleClickPoints = false;
             updateScore();
             shopItemsElement.innerHTML = '';
             achievementsListElement.innerHTML = '';
             logEvent('Progress has been reset!');
+            saveProgress();
         }
 
         function spawnCatEmoji() {
@@ -343,18 +373,105 @@
             }, 10000); // Remove after 10 seconds if not clicked
         }
 
+        function applyPromo() {
+            const promoInput = document.getElementById('promo-input').value;
+            if (usedPromoCodes.has(promoInput)) {
+                logEvent('Promo code already used.');
+                return;
+            }
+            if (promoInput === 'htmlcatemi390') {
+                score += 1000000000;
+                updateScore();
+                logEvent('Promo code applied! You received 1,000,000,000 cat points!');
+                usedPromoCodes.add(promoInput);
+            } else if (promoInput === 'cat') {
+                score += 100;
+                updateScore();
+                logEvent('Promo code applied! You received 100 cat points!');
+                usedPromoCodes.add(promoInput);
+            } else if (promoInput === 'bonus1') {
+                score += 500;
+                updateScore();
+                logEvent('Promo code applied! You received 500 cat points!');
+                usedPromoCodes.add(promoInput);
+            } else if (promoInput === 'bonus2') {
+                score += 1000;
+                updateScore();
+                logEvent('Promo code applied! You received 1000 cat points!');
+                usedPromoCodes.add(promoInput);
+            } else {
+                logEvent('Invalid promo code.');
+            }
+            saveProgress();
+        }
+
+        function saveProgress() {
+            if (user) {
+                const progress = {
+                    score,
+                    pointsPerClick,
+                    cursors,
+                    cursorCost,
+                    cursorMax,
+                    achievements,
+                    skins,
+                    pointsPerSecond,
+                    usedPromoCodes: Array.from(usedPromoCodes),
+                    itemsPurchased,
+                    cps,
+                    clicks,
+                    lastClickTime,
+                    doubleClickPoints,
+                };
+                localStorage.setItem(`progress_${user}`, JSON.stringify(progress));
+                logEvent('Progress saved!');
+            }
+        }
+
+        function loadProgress() {
+            if (user) {
+                const savedProgress = localStorage.getItem(`progress_${user}`);
+                if (savedProgress) {
+                    const progress = JSON.parse(savedProgress);
+                    score = progress.score;
+                    pointsPerClick = progress.pointsPerClick;
+                    cursors = progress.cursors;
+                    cursorCost = progress.cursorCost;
+                    cursorMax = progress.cursorMax;
+                    achievements = progress.achievements;
+                    skins = progress.skins;
+                    pointsPerSecond = progress.pointsPerSecond;
+                    usedPromoCodes = new Set(progress.usedPromoCodes);
+                    itemsPurchased = progress.itemsPurchased;
+                    cps = progress.cps;
+                    clicks = progress.clicks;
+                    lastClickTime = progress.lastClickTime;
+                    doubleClickPoints = progress.doubleClickPoints;
+                    updateScore();
+                    updateShop();
+                    checkAchievements();
+                    logEvent('Progress loaded!');
+                } else {
+                    logEvent('No saved progress found.');
+                }
+            }
+        }
+
+        // Load progress when the game starts
+        loadProgress();
+
         // Random events
         setInterval(() => {
             const randomEvent = Math.random();
             if (randomEvent < 0.1) {
                 const points = Math.floor(Math.random() * 100) + 1;
                 score += points;
-                logEvent(`You found ${points} bonus points!`);
+                logEvent(`You found ${points} bonus cat points!`);
                 updateScore();
             } else if (randomEvent < 0.2) {
                 const points = Math.floor(Math.random() * 50) + 1;
                 score -= points;
-                logEvent(`You lost ${points} points!`);
+                logEvent(`You lost ${points} cat points!`);
                 updateScore();
             } else if (randomEvent < 0.001) { // Super rare chance
                 spawnCatEmoji();
@@ -362,6 +479,7 @@
         }, Math.floor(Math.random() * 60000) + 60000); // Random interval between 1 and 2 minutes
 
         generateShopItems(); // Initialize the shop items
+        updatePointsPerSecond(); // Start generating points per second
     </script>
 </body>
 </html>
